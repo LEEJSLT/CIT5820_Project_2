@@ -62,7 +62,6 @@ def process_order(order):
                 
             # existing_order is the parent for the create_order
             else:
-            # elif existing_order.sell_amount > new_order.buy_amount:
                 # id from parent order
                 creator_id = existing_order.id
 
