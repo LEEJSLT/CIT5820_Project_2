@@ -27,47 +27,49 @@ def process_order(order):
     existing_order = session.query(Order).filter(Order.filled == None, Order.buy_currency == new_order.sell_currency, Order.sell_currency == new_order.buy_currency, ((Order.sell_amount / Order.buy_amount ) >= (new_order.buy_amount / new_order.sell_amount))).first()
 
     # Match orders
-    # Set the filled field to be the current timestamp on both orders
-    new_order.filled = datetime.now()
-    existing_order.filled = datetime.now()
 
-    # Set counterparty_id to be the id of the other order
-    new_order.counterparty_id = existing_order.id
-    existing_order.counterparty_id = new_order.id
+    if existing_order != None:
+        # Set the filled field to be the current timestamp on both orders
+        new_order.filled = datetime.now()
+        existing_order.filled = datetime.now()
 
-    # If one of the orders is not completely filled (i.e. the counterparty’s sell_amount is less than buy_amount):
+        # Set counterparty_id to be the id of the other order
+        new_order.counterparty_id = existing_order.id
+        existing_order.counterparty_id = new_order.id
 
-    if existing_order.sell_amount < new_order.buy_amount or new_order.buy_amount < existing_order.sell_amount:
+        # If one of the orders is not completely filled (i.e. the counterparty’s sell_amount is less than buy_amount):
 
-        if existing_order.sell_amount < new_order.buy_amount:
-            sender_pk = new_order.sender_pk
-            receiver_pk = new_order.receiver_pk
-            buy_currency = new_order.buy_currency
-            sell_currency = new_order.sell_currency
+        if existing_order.sell_amount < new_order.buy_amount or new_order.buy_amount < existing_order.sell_amount:
 
-            buy_amount = new_order.buy_amount - existing_order.sell_amount
-            sell_amount = buy_amount / (new_order.buy_amount / new_order.sell_amount)
-            creator_id = new_order.id
+            if existing_order.sell_amount < new_order.buy_amount:
+                sender_pk = new_order.sender_pk
+                receiver_pk = new_order.receiver_pk
+                buy_currency = new_order.buy_currency
+                sell_currency = new_order.sell_currency
 
-        elif existing_order.sell_amount > new_order.buy_amount:
-            sender_pk = existing_order.sender_pk
-            receiver_pk = existing_order.receiver_pk
-            buy_currency = existing_order.buy_currency
-            sell_currency = existing_order.sell_currency
-            sell_amount = existing_order.sell_amount - new_order.buy_amount
-            buy_amount = sell_amount / (existing_order.sell_amount / existing_order.buy_amount)
-            creator_id = existing_order.id
+                buy_amount = new_order.buy_amount - existing_order.sell_amount
+                sell_amount = buy_amount / (new_order.buy_amount / new_order.sell_amount)
+                creator_id = new_order.id
 
-        # Create a new order for remaining balance
-        create_order = Order(sender_pk=sender_pk, receiver_pk=receiver_pk, buy_currency=buy_currency,
-                              sell_currency=sell_currency, buy_amount=buy_amount, sell_amount=sell_amount, creator_id = creator_id)
+            elif existing_order.sell_amount > new_order.buy_amount:
+                sender_pk = existing_order.sender_pk
+                receiver_pk = existing_order.receiver_pk
+                buy_currency = existing_order.buy_currency
+                sell_currency = existing_order.sell_currency
+                sell_amount = existing_order.sell_amount - new_order.buy_amount
+                buy_amount = sell_amount / (existing_order.sell_amount / existing_order.buy_amount)
+                creator_id = existing_order.id
 
-        session.add(create_order)
-        session.commit()
-        process_order(create_order)
-            
-    else:
-        session.commit()
+            # Create a new order for remaining balance
+            create_order = Order(sender_pk=sender_pk, receiver_pk=receiver_pk, buy_currency=buy_currency,
+                                sell_currency=sell_currency, buy_amount=buy_amount, sell_amount=sell_amount, creator_id = creator_id)
+
+            session.add(create_order)
+            session.commit()
+            process_order(create_order)
+                
+        else:
+            session.commit()
 
 
 
